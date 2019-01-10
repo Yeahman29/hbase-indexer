@@ -23,7 +23,7 @@ import static org.mockito.Mockito.verify;
 import java.io.IOException;
 
 import org.apache.hadoop.hbase.CellUtil;
-import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Before;
@@ -35,12 +35,12 @@ public class HBaseEventPublisherTest {
     private static final byte[] PAYLOAD_CF = Bytes.toBytes("payload column family");
     private static final byte[] PAYLOAD_CQ = Bytes.toBytes("payload column qualifier");
 
-    private HTableInterface recordTable;
+    private Table recordTable;
     private HBaseEventPublisher eventPublisher;
 
     @Before
     public void setUp() {
-        recordTable = mock(HTableInterface.class);
+        recordTable = mock(Table.class);
         eventPublisher = new HBaseEventPublisher(recordTable, PAYLOAD_CF, PAYLOAD_CQ);
     }
 

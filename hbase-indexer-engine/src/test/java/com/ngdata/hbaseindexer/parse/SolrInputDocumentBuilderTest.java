@@ -92,10 +92,10 @@ public class SolrInputDocumentBuilderTest {
         SolrInputDocument docA = new SolrInputDocument();
         SolrInputDocument docB = new SolrInputDocument();
         
-        docA.addField("field", "A1", 0.5f);
-        docA.addField("field", "A2", 0.5f);
-        docB.addField("field", "B1", 1.5f);
-        docB.addField("field", "B2", 1.5f);
+        docA.addField("field", "A1");
+        docA.addField("field", "A2");
+        docB.addField("field", "B1");
+        docB.addField("field", "B2");
         
         builder.add(docA);
         builder.add(docB);
@@ -106,7 +106,7 @@ public class SolrInputDocumentBuilderTest {
         assertEquals(Lists.newArrayList("A1", "A2", "B1", "B2"), merged.get("field").getValues());
         
         // The boost of the first-added definition of a field is the definitive version
-        assertEquals(0.5f * 0.5f * 1.5f * 1.5f, merged.getField("field").getBoost(), 0f);
+       // assertEquals(0.5f * 0.5f * 1.5f * 1.5f, merged.getField("field").getBoost(), 0f);
     }
 
 

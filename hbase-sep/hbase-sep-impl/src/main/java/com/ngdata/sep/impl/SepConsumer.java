@@ -15,20 +15,17 @@
  */
 package com.ngdata.sep.impl;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Multimap;
-import com.google.protobuf.RpcController;
-import com.google.protobuf.ServiceException;
-import com.ngdata.sep.EventListener;
-import com.ngdata.sep.PayloadExtractor;
-import com.ngdata.sep.SepEvent;
-import com.ngdata.sep.SepModel;
-import com.ngdata.sep.util.concurrent.WaitPolicy;
-import com.ngdata.sep.util.io.Closer;
-import com.ngdata.sep.util.zookeeper.ZooKeeperItf;
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.Future;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -40,27 +37,33 @@ import org.apache.hadoop.hbase.KeyValueUtil;
 import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.ipc.FifoRpcScheduler;
-import org.apache.hadoop.hbase.ipc.PayloadCarryingRpcController;
+import org.apache.hadoop.hbase.ipc.HBaseRpcController;
 import org.apache.hadoop.hbase.ipc.RpcServer;
-import org.apache.hadoop.hbase.protobuf.generated.AdminProtos;
+import org.apache.hadoop.hbase.ipc.SimpleRpcServer;
 import org.apache.hadoop.hbase.security.User;
+import org.apache.hadoop.hbase.shaded.protobuf.generated.AdminProtos;
+import org.apache.hadoop.hbase.shaded.protobuf.generated.AdminProtos.AdminService;
+import org.apache.hadoop.hbase.shaded.protobuf.generated.AdminProtos.ReplicateWALEntryRequest;
+import org.apache.hadoop.hbase.shaded.protobuf.generated.AdminProtos.ReplicateWALEntryResponse;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.ZKUtil;
-import org.apache.hadoop.hbase.zookeeper.ZooKeeperWatcher;
+import org.apache.hadoop.hbase.zookeeper.ZKWatcher;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs;
 
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.Future;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
+import com.ngdata.sep.EventListener;
+import com.ngdata.sep.PayloadExtractor;
+import com.ngdata.sep.SepEvent;
+import com.ngdata.sep.SepModel;
+import com.ngdata.sep.util.concurrent.WaitPolicy;
+import com.ngdata.sep.util.io.Closer;
+import com.ngdata.sep.util.zookeeper.ZooKeeperItf;
 
 /**
  * SepConsumer consumes the events for a certain SEP subscription and dispatches
@@ -80,7 +83,7 @@ public class SepConsumer extends BaseHRegionServer {
     private final Configuration hbaseConf;
     private RpcServer rpcServer;
     private ServerName serverName;
-    private ZooKeeperWatcher zkWatcher;
+    private ZKWatcher zkWatcher;
     private SepMetrics sepMetrics;
     private final PayloadExtractor payloadExtractor;
     private String zkNodePath;
@@ -128,13 +131,14 @@ public class SepConsumer extends BaseHRegionServer {
             throw new IllegalArgumentException("Failed resolve of " + initialIsa);
         }
         String name = "regionserver/" + initialIsa.toString();
-        this.rpcServer = new RpcServer(this, name, getServices(),
+        
+        this.rpcServer = new SimpleRpcServer(this, name, getServices(),
         /*HBaseRPCErrorHandler.class, OnlineRegions.class},*/
                 initialIsa, // BindAddress is IP we got for this server.
                 //hbaseConf.getInt("hbase.regionserver.handler.count", 10),
                 //hbaseConf.getInt("hbase.regionserver.metahandler.count", 10),
                 hbaseConf,
-                new FifoRpcScheduler(hbaseConf, hbaseConf.getInt("hbase.regionserver.handler.count", 10)));
+                new FifoRpcScheduler(hbaseConf, hbaseConf.getInt("hbase.regionserver.handler.count", 10)),true);
           /*
           new SimpleRpcScheduler(
             hbaseConf,
@@ -146,7 +150,7 @@ public class SepConsumer extends BaseHRegionServer {
           );
           */
         this.serverName = ServerName.valueOf(hostName, rpcServer.getListenerAddress().getPort(), System.currentTimeMillis());
-        this.zkWatcher = new ZooKeeperWatcher(hbaseConf, this.serverName.toString(), null);
+        this.zkWatcher = new ZKWatcher(hbaseConf, this.serverName.toString(), null);
 
         // login the zookeeper client principal (if using security)
         ZKUtil.loginClient(hbaseConf, "hbase.zookeeper.client.keytab.file",
@@ -178,9 +182,18 @@ public class SepConsumer extends BaseHRegionServer {
 
     private List<RpcServer.BlockingServiceAndInterface> getServices() {
         List<RpcServer.BlockingServiceAndInterface> bssi = new ArrayList<RpcServer.BlockingServiceAndInterface>(1);
+     
+        
+        bssi.add(new RpcServer.BlockingServiceAndInterface(           	
+        		AdminService.newReflectiveBlockingService(this),
+                AdminProtos.AdminService.BlockingInterface.class));
+        /*
         bssi.add(new RpcServer.BlockingServiceAndInterface(
+        	
                 AdminProtos.AdminService.newReflectiveBlockingService(this),
                 AdminProtos.AdminService.BlockingInterface.class));
+                */
+        
         return bssi;
     }
 
@@ -211,8 +224,11 @@ public class SepConsumer extends BaseHRegionServer {
     }
 
     @Override
-    public AdminProtos.ReplicateWALEntryResponse replicateWALEntry(final RpcController controller,
-            final AdminProtos.ReplicateWALEntryRequest request) throws ServiceException {
+	public ReplicateWALEntryResponse replicateWALEntry(
+			org.apache.hbase.thirdparty.com.google.protobuf.RpcController controller, ReplicateWALEntryRequest request)
+			throws org.apache.hbase.thirdparty.com.google.protobuf.ServiceException {
+		// TODO Auto-generated method stub
+	
         try {
 
             // TODO Recording of last processed timestamp won't work if two batches of log entries are sent out of order
@@ -221,7 +237,7 @@ public class SepConsumer extends BaseHRegionServer {
             SepEventExecutor eventExecutor = new SepEventExecutor(listener, executors, 100, sepMetrics);
 
             List<AdminProtos.WALEntry> entries = request.getEntryList();
-            CellScanner cells = ((PayloadCarryingRpcController)controller).cellScanner();
+            CellScanner cells = ((HBaseRpcController)controller).cellScanner();
 
             for (final AdminProtos.WALEntry entry : entries) {
                 TableName tableName = (entry.getKey().getWriteTime() < subscriptionTimestamp) ? null :
@@ -272,7 +288,7 @@ public class SepConsumer extends BaseHRegionServer {
             }
             return AdminProtos.ReplicateWALEntryResponse.newBuilder().build();
         } catch (IOException ie) {
-            throw new ServiceException(ie);
+            throw new org.apache.hbase.thirdparty.com.google.protobuf.ServiceException(ie);
         }
     }
 
@@ -314,7 +330,7 @@ public class SepConsumer extends BaseHRegionServer {
     }
 
     @Override
-    public ZooKeeperWatcher getZooKeeper() {
+    public ZKWatcher getZooKeeper() {
         return zkWatcher;
     }
 

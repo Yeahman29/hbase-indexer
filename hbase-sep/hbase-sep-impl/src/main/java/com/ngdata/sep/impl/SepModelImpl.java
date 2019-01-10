@@ -23,6 +23,7 @@ import com.ngdata.sep.util.zookeeper.ZooKeeperItf;
 
 import com.ngdata.sep.util.io.Closer;
 
+
 import com.ngdata.sep.SepModel;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -88,7 +89,10 @@ public class SepModelImpl implements SepModel {
 
 
             try {
-                replicationAdmin.addPeer(internalName, zkQuorumString + ":" + zkClientPort + ":" + basePath);
+            	
+            	ReplicationPeerConfig peerConfig = ReplicationPeerConfig.newBuilder().setClusterKey(zkQuorumString + ":" + zkClientPort + ":" + basePath).build();
+               // replicationAdmin.addPeer(internalName, zkQuorumString + ":" + zkClientPort + ":" + basePath);
+            	replicationAdmin.addPeer(internalName, peerConfig);
             } catch (IllegalArgumentException e) {
                 if (e.getMessage().equals("Cannot add existing peer")) {
                     return false;

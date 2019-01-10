@@ -29,7 +29,7 @@ import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.FSUtils;
-import org.apache.hadoop.hbase.wal.DefaultWALProvider;
+import org.apache.hadoop.hbase.wal.FSHLogProvider;
 import org.apache.hadoop.hbase.zookeeper.ZKUtil;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -302,7 +302,7 @@ public class ReplicationStatusRetriever {
      * @param hlogName name of HLog
      */
     private long getLogFileSize(String serverName, String hlogName) throws IOException {
-        Path hbaseLogDir = new Path(hbaseRootDir, DefaultWALProvider.getWALDirectoryName(serverName));
+        Path hbaseLogDir = new Path(hbaseRootDir, FSHLogProvider.getWALDirectoryName(serverName));
         Path path = new Path(hbaseLogDir, hlogName);
         try {
             FileStatus status = fileSystem.getFileStatus(path);

@@ -25,7 +25,7 @@
   <parent>
     <groupId>com.ngdata</groupId>
     <artifactId>hbase-indexer</artifactId>
-    <version>1.6-SNAPSHOT</version>
+    <version>HDP-3.1.0.0</version>
   </parent>
 
   <dependencies>
@@ -33,11 +33,7 @@
       <groupId>com.ngdata</groupId>
       <artifactId>hbase-indexer-all</artifactId>
     </dependency>
-    <dependency>
-      <groupId>com.ngdata</groupId>
-      <artifactId>hbase-indexer-mr</artifactId>
-      <classifier>job</classifier>
-    </dependency>
+    
   </dependencies>
 
   <profiles>
@@ -64,7 +60,7 @@
               <skipAssembly>false</skipAssembly>
               <tarLongFileMode>gnu</tarLongFileMode>
               <appendAssemblyId>false</appendAssemblyId>
-              <finalName>hbase-indexer-1.6-SNAPSHOT</finalName>
+              <finalName>hbase-indexer-HDP-3.1.0.0</finalName>
               <descriptors>
                 <descriptor>src/assembly/assembly.xml</descriptor>
               </descriptors>
@@ -109,7 +105,7 @@
                   <groupname>root</groupname>
                   <sources>
                     <source>
-                      <location>${project.build.directory}/hbase-indexer-1.6-SNAPSHOT/hbase-indexer-1.6-SNAPSHOT/</location>
+                      <location>${project.build.directory}/hbase-indexer-HDP-3.1.0.0/hbase-indexer-HDP-3.1.0.0/</location>
                     </source>
                   </sources>
                 </mapping>

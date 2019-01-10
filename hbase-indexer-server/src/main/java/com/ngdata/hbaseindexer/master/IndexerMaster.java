@@ -39,8 +39,7 @@ import com.ngdata.hbaseindexer.SolrConnectionParams;
 import com.ngdata.hbaseindexer.model.api.*;
 import com.ngdata.hbaseindexer.model.api.IndexerDefinition.BatchIndexingState;
 import com.ngdata.hbaseindexer.model.api.IndexerDefinition.IncrementalIndexingState;
-import com.ngdata.hbaseindexer.mr.HBaseMapReduceIndexerTool;
-import com.ngdata.hbaseindexer.mr.JobProcessCallback;
+
 import com.ngdata.hbaseindexer.util.solr.SolrConnectionParamUtil;
 import com.ngdata.hbaseindexer.util.zookeeper.LeaderElection;
 import com.ngdata.hbaseindexer.util.zookeeper.LeaderElectionCallback;
@@ -140,9 +139,10 @@ public class IndexerMaster {
                 hbaseConf.get(ConfKeys.ZK_ROOT_NODE) + "/masters",
                 new MyLeaderElectionCallback());
 
-        for (IndexerDefinition indexerDefinition : indexerModel.getIndexers()) {
-            executor.schedule(new BatchStateUpdater(indexerDefinition.getName(), indexerModel, getJobClient(), executor,
-                            batchStatePollInterval), batchStatePollInterval, TimeUnit.MILLISECONDS);
+        for (IndexerDefinition indexerDefinition : indexerModel.getIndexers()) 
+        {
+         //   executor.schedule(new BatchStateUpdater(indexerDefinition.getName(), indexerModel, getJobClient(), executor,
+          //                  batchStatePollInterval), batchStatePollInterval, TimeUnit.MILLISECONDS);
         }
 
     }
@@ -293,8 +293,10 @@ public class IndexerMaster {
                 final IndexerDefinition indexer = indexerModel.getFreshIndexer(indexerName);
                 IndexerDefinitionBuilder updatedIndexer = new IndexerDefinitionBuilder().startFrom(indexer);
                 final String[] batchArguments = createBatchArguments(indexer);
+               
                 if (needsBatchBuildStart(indexer)) {
-                    final ListeningExecutorService executor =
+               /*
+                	final ListeningExecutorService executor =
                             MoreExecutors.listeningDecorator(Executors.newSingleThreadExecutor());
                     executor.submit(new Callable<Integer>() {
                         @Override
@@ -318,7 +320,7 @@ public class IndexerMaster {
                             batchStatePollInterval), batchStatePollInterval, TimeUnit.MILLISECONDS);
 
                     log.info("Started batch index build for index " + indexerName);
-
+				*/
                 }
             } finally {
                 indexerModel.unlockIndexer(lock);
@@ -559,9 +561,10 @@ public class IndexerMaster {
         }
     }
 
+    
     /**
      * Updates the index definition with information about MR jobs that are involved in the batch build (tracking urls mainly).
-     */
+     
     private final class IndexerDefinitionUpdaterJobProgressCallback implements JobProcessCallback {
 
         private final String indexerName;
@@ -594,5 +597,6 @@ public class IndexerMaster {
             }
         }
     }
+    */
 
 }

@@ -63,7 +63,7 @@ public class SolrInputDocumentBuilder {
     public void add(SolrInputDocument inputDocument, String prefix) {
         for (Entry<String, SolrInputField> entry : inputDocument.entrySet()) {
             SolrInputField inputField = entry.getValue();
-            document.addField(prefix + entry.getKey(), inputField.getValues(), inputField.getBoost());
+            document.addField(prefix + entry.getKey(), inputField.getValues());
         }
     }
 

@@ -58,7 +58,8 @@ public class IdAddingSolrUpdateWriterTest {
         
         
         SolrInputField solrIdField = new SolrInputField(DOCUMENT_ID);
-        solrIdField.setValue(DOCUMENT_ID, 1.0f);
+        solrIdField.setName(DOCUMENT_ID);
+        solrIdField.setValue( 1.0f);
         
         when(solrDoc.getField(UNIQUE_KEY_FIELD)).thenReturn(solrIdField);
 
@@ -91,9 +92,11 @@ public class IdAddingSolrUpdateWriterTest {
         SolrInputDocument docB = mock(SolrInputDocument.class);
         
         SolrInputField keyFieldA = new SolrInputField(UNIQUE_KEY_FIELD);
-        keyFieldA.setValue(idA, 1.0f);
+        keyFieldA.setName(idA);
+        keyFieldA.setValue( 1.0f);
         SolrInputField keyFieldB = new SolrInputField(UNIQUE_KEY_FIELD);
-        keyFieldB.setValue(idB, 1.0f);
+        keyFieldB.setName(idB);
+        keyFieldB.setValue(1.0f);
         
         
         when(docA.getField(UNIQUE_KEY_FIELD)).thenReturn(keyFieldA);

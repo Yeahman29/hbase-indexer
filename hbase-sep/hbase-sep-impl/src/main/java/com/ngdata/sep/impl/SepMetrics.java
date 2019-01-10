@@ -15,51 +15,20 @@
  */
 package com.ngdata.sep.impl;
 
-import javax.management.ObjectName;
 
-import org.apache.hadoop.metrics.MetricsContext;
-import org.apache.hadoop.metrics.MetricsRecord;
-import org.apache.hadoop.metrics.MetricsUtil;
-import org.apache.hadoop.metrics.Updater;
-import org.apache.hadoop.metrics.util.MBeanUtil;
-import org.apache.hadoop.metrics.util.MetricsBase;
-import org.apache.hadoop.metrics.util.MetricsDynamicMBeanBase;
-import org.apache.hadoop.metrics.util.MetricsLongValue;
-import org.apache.hadoop.metrics.util.MetricsRegistry;
-import org.apache.hadoop.metrics.util.MetricsTimeVaryingRate;
 
 /**
  * Metrics for the Side-Effect Processor (SEP) system.
  */
-public class SepMetrics implements Updater {
+public class SepMetrics  {
 
-    private final String recordName;
-    private final MetricsRegistry metricsRegistry;
-    private final MetricsRecord metricsRecord;
-    private final MetricsContext context;
-    private final SepMetricsMXBean mbean;
-
-    // Processing rate for SEP actions for which we actually do something (i.e. after filtering)
-    private final MetricsTimeVaryingRate sepProcessingRate;
-
-    // The write timestamp of the last SEP information that came in
-    private final MetricsLongValue lastTimestampInputProcessed;
-
+    
     public SepMetrics(String recordName) {
-        this.recordName = recordName;
-        metricsRegistry = new MetricsRegistry();
-        sepProcessingRate = new MetricsTimeVaryingRate("sepProcessed", metricsRegistry);
-        lastTimestampInputProcessed = new MetricsLongValue("lastSepTimestamp", metricsRegistry);
-
-        context = MetricsUtil.getContext("repository");
-        metricsRecord = MetricsUtil.createRecord(context, recordName);
-        context.registerUpdater(this);
-        mbean = new SepMetricsMXBean(this.metricsRegistry);
+        
     }
 
     public void shutdown() {
-        context.unregisterUpdater(this);
-        mbean.shutdown();
+       
     }
 
     /**
@@ -69,7 +38,7 @@ public class SepMetrics implements Updater {
      * @param duration The number of millisecods spent handling the SEP operation
      */
     public void reportFilteredSepOperation(long duration) {
-        sepProcessingRate.inc(duration);
+        
     }
 
     /**
@@ -81,32 +50,13 @@ public class SepMetrics implements Updater {
      * @param timestamp The write timestamp of the last SEP operation
      */
     public void reportSepTimestamp(long writeTimestamp) {
-        lastTimestampInputProcessed.set(writeTimestamp);
+        
     }
 
-    @Override
-    public void doUpdates(MetricsContext unused) {
-        synchronized (this) {
-            for (MetricsBase m : metricsRegistry.getMetricsList()) {
-                m.pushMetric(metricsRecord);
-            }
-        }
-        metricsRecord.update();
-    }
-
-    public class SepMetricsMXBean extends MetricsDynamicMBeanBase {
-        private final ObjectName mbeanName;
-
-        public SepMetricsMXBean(MetricsRegistry registry) {
-            super(registry, "HBase Side-Effect Processor Metrics");
-
-            mbeanName = MBeanUtil.registerMBean("SEP", recordName, this);
-        }
-
-        public void shutdown() {
-            if (mbeanName != null)
-                MBeanUtil.unregisterMBean(mbeanName);
-        }
+   
+   
+    public class SepMetricsMXBean  {
+        
     }
 
 }
