@@ -5,7 +5,18 @@ HBase Indexer allows you to easily and quickly index HBase rows into Solr.
 Usage documentation can be found on the hbase-indexer Wiki -
 http://github.com/NGDATA/hbase-indexer/wiki.
 
+this fork make hbase-indexer usable in HDP 3.1.0.0
+- HDFS 3.1.1
+- HBASE 2.0.2
+- SOLR 7.4
+
 ## Subprojects
+
+### HBase MapReduce
+
+The subprojet hbase-indexer-mr subproject has been deleted due to the end of the project solr-map-reduce in solr 7.4.
+So, it is no longer possible to use the Batch Mode in hbase-indexer.
+
 
 ### HBase SEP
 
@@ -22,9 +33,4 @@ see [the SEP-tools readme](hbase-sep/hbase-sep-tools/README.md).
 
 You can build the full hbase-indexer project as follows:
 
-    mvn clean install -DskipTests
-
-The default build is linked to HBase 0.94. In order to build for HBase 0.98,
-run the following command:
-
-    mvn clean install -DskipTests -Dhbase.api=0.98
+    mvn clean package -DskipTests -Pdist
