@@ -25,16 +25,50 @@ import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.PropertyConfigurator;
-
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.HBaseConfiguration;
 public class ReplicationStatusCli {
+	
+	Log log = LogFactory.getLog(ReplicationStatusCli.class);
 
     public static void main(String[] args) throws Exception {
+    	
         new ReplicationStatusCli().run(args);
     }
 
     public void run(String[] args) throws Exception {
         LogManager.resetConfiguration();
         PropertyConfigurator.configure(getClass().getResource("log4j.properties"));
+        String hbaseZkDefaultNode = "localhost";
+        int hbaseZkDefaultPort = 0;
+        int hbaseMasterDefaultPort=0;
+        String hbaseZkDefaultPath="/hbase";
+        String hbaseZkDefaultConnectionString="";
+        
+        Configuration config = HBaseConfiguration.create();
+        System.out.println("hbase config:"+config);
+        // args can be read from hbase-site.xml, if no hbase-site then take options
+        if (null != config)
+        {
+        	hbaseZkDefaultNode = config.get("hbase.zookeeper.quorum");
+        	hbaseZkDefaultPort = config.getInt("hbase.zookeeper.property.clientPort",2181);
+        	String[] nodes = hbaseZkDefaultNode.split(",");
+        	for (String node:nodes)
+        	{
+        		hbaseZkDefaultConnectionString=hbaseZkDefaultConnectionString + node+":"+hbaseZkDefaultPort+",";
+        	}
+        	
+        	hbaseZkDefaultConnectionString=hbaseZkDefaultConnectionString.substring(0, hbaseZkDefaultConnectionString.length()-1);		
+        	System.out.println("hbaseZkDefaultConnectionString:"+hbaseZkDefaultConnectionString);
+        	hbaseMasterDefaultPort= config.getInt("hbase.master.info.port", 60010);
+        	System.out.println("hbaseMasterDefaultPort:"+hbaseMasterDefaultPort);
+        	hbaseZkDefaultPath = config.get("zookeeper.znode.parent");
+        	System.out.println("hbaseZkDefaultPath:"+hbaseZkDefaultPath);
+
+        }
+        
 
         OptionParser parser =  new OptionParser();
         OptionSpec enableJmxOption = parser.accepts("enable-jmx",
@@ -42,12 +76,18 @@ public class ReplicationStatusCli {
         OptionSpec<String> zkOption = parser
                 .acceptsAll(ImmutableList.of("z"), "ZooKeeper connection string, defaults to localhost")
                 .withRequiredArg().ofType(String.class)
-                .defaultsTo("localhost");
+                .defaultsTo(hbaseZkDefaultConnectionString);
         
         OptionSpec<Integer> hbaseMasterPortOption = parser
                 .acceptsAll(ImmutableList.of("hbase-master-port"), "HBase Master web ui port number")
                 .withRequiredArg().ofType(Integer.class)
-                .defaultsTo(60010);
+                .defaultsTo(hbaseMasterDefaultPort);
+        
+        OptionSpec<String> hbasePathOption = parser
+                .acceptsAll(ImmutableList.of("p"), "ZooKeeper hbase base path, defaults to /hbase")
+                .withRequiredArg().ofType(String.class)
+                .defaultsTo(hbaseZkDefaultPath);
+        
 
         OptionSet options = null;
         try {
@@ -65,7 +105,7 @@ public class ReplicationStatusCli {
         System.out.println("Connecting to Zookeeper " + zkConnectString + "...");
         ZooKeeperItf zk = ZkUtil.connect(zkConnectString, 30000);
 
-        ReplicationStatusRetriever retriever = new ReplicationStatusRetriever(zk, options.valueOf(hbaseMasterPortOption));
+        ReplicationStatusRetriever retriever = new ReplicationStatusRetriever(zk, options.valueOf(hbaseMasterPortOption),options.valueOf(hbasePathOption));
         ReplicationStatus replicationStatus = retriever.collectStatusFromZooKeepeer();
 
         if (enableJmx) {

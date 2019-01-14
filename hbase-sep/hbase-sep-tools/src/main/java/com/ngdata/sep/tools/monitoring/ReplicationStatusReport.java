@@ -15,6 +15,7 @@
  */
 package com.ngdata.sep.tools.monitoring;
 
+import org.apache.hadoop.hbase.ServerName;
 import org.joda.time.DateTime;
 
 import java.io.PrintStream;

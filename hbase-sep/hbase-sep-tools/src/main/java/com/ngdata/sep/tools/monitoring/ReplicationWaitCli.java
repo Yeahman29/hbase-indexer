@@ -27,6 +27,8 @@ import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.log4j.Level;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -52,19 +54,39 @@ public class ReplicationWaitCli {
     public void run(String[] args) throws Exception {
         LogManager.resetConfiguration();
         PropertyConfigurator.configure(getClass().getResource("log4j.properties"));
+        
+        String hbaseZkDefaultNode = "localhost";
+        int hbaseMasterDefaultPort=0;
+        String hbaseZkDefaultPath="/hbase";
+        
+        Configuration config = HBaseConfiguration.create();
+        
+        // args can be read from hbase-site.xml, if no hbase-site then take options
+        if (null != config)
+        {
+        	hbaseZkDefaultNode = config.get("zookeeper.znode.parent");
+        	hbaseMasterDefaultPort= config.getInt("hbase.master.info.port", 60010);
+        	hbaseZkDefaultPath = config.get("zookeeper.znode.parent");
+        }
+        
 
         OptionParser parser =  new OptionParser();
         OptionSpec<String> zkOption = parser
                 .acceptsAll(Lists.newArrayList("z"), "ZooKeeper connection string, defaults to localhost")
                 .withRequiredArg().ofType(String.class)
-                .defaultsTo("localhost");
+                .defaultsTo(hbaseZkDefaultNode);
         OptionSpec verboseOption = parser
                 .acceptsAll(Lists.newArrayList("verbose"), "Enable debug logging");
         
         OptionSpec<Integer> hbaseMasterPortOption = parser
                 .acceptsAll(ImmutableList.of("hbase-master-port"), "HBase Master web ui port number")
                 .withRequiredArg().ofType(Integer.class)
-                .defaultsTo(60010);
+                .defaultsTo(hbaseMasterDefaultPort);
+        
+        OptionSpec<String> hbasePathOption = parser
+                .acceptsAll(ImmutableList.of("p"), "ZooKeeper hbase base path, defaults to /hbase")
+                .withRequiredArg().ofType(String.class)
+                .defaultsTo(hbaseZkDefaultPath);
 
         OptionSet options = null;
         try {
@@ -88,13 +110,13 @@ public class ReplicationWaitCli {
 
         System.out.println("Connecting to Zookeeper " + zkConnectString + "...");
         ZooKeeperItf zk = ZkUtil.connect(zkConnectString, 30000);
-        waitUntilReplicationDone(zk, options.valueOf(hbaseMasterPortOption));
+        waitUntilReplicationDone(zk, options.valueOf(hbaseMasterPortOption),options.valueOf(hbasePathOption));
 
         Closer.close(zk);
     }
 
-    public void waitUntilReplicationDone(ZooKeeperItf zk, int hbaseMasterPort) throws Exception {
-        ReplicationStatusRetriever retriever = new ReplicationStatusRetriever(zk, hbaseMasterPort);
+    public void waitUntilReplicationDone(ZooKeeperItf zk, int hbaseMasterPort,String hbasePathOption) throws Exception {
+        ReplicationStatusRetriever retriever = new ReplicationStatusRetriever(zk, hbaseMasterPort,hbasePathOption);
 
         DateTime startedAt = new DateTime();
         ReplicationStatus prevReplicationStatus = null;

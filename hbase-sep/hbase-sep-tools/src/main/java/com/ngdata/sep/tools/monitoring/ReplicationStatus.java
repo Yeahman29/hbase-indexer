@@ -20,6 +20,9 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.Collections2;
 
 import javax.annotation.Nullable;
+
+import org.apache.hadoop.hbase.ServerName;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
